@@ -7,7 +7,6 @@ import Http
 import Json.Decode as Decode
 
 
--- Need to display some error messages
 -- Need some styling
 
 
@@ -35,7 +34,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model 0.0 "AUD" "USD" "Please enter an amount and the currencies you wish to convert between", Cmd.none )
+    ( Model 1.0 "AUD" "USD" "", Cmd.none )
 
 
 type Msg
@@ -105,7 +104,7 @@ updateInput model valueType changedValue =
                     ( { model | amount = value }, Cmd.none )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | amount = 0 }, Cmd.none )
 
         "base_currency" ->
             ( { model | base_currency = changedValue }, Cmd.none )
@@ -145,13 +144,36 @@ inputForm model =
         [ div [ id "currency-converter" ]
             [ label [ for "input-amount" ] [ text "Amount" ]
             , input [ id "input-amount", placeholder "($)", onInput (InputChanged "amount"), model.amount |> toString |> defaultValue ] []
-              -- validate is currency with 2 digit then . then 2 max and is not negative
-            , label [ for "currency-one-select" ] [ text "Base Currency" ]
-            , select [ id "currency-one-select", onInput (InputChanged "base_currency") ] (List.map (\x -> option [ x == model.base_currency |> selected ] [ text x ]) currencies)
-            , label [ for "currency-two-select" ] [ text "Target Currency" ]
-            , select [ id "currency-two-select", onInput (InputChanged "target_currency") ] (List.map (\x -> option [ x == model.target_currency |> selected ] [ text x ]) currencies)
+            , viewValidation model
+            , label [ for "base-currency-select" ] [ text "Base Currency" ]
+            , select [ id "base-currency-select", onInput (InputChanged "base_currency") ] (List.map (\x -> option [ x == model.base_currency |> selected ] [ text x ]) currencies)
+            , label [ for "target-currency-select" ] [ text "Target Currency" ]
+            , select [ id "target-currency-select", onInput (InputChanged "target_currency") ] (List.map (\x -> option [ x == model.target_currency |> selected ] [ text x ]) currencies)
             ]
         ]
+
+
+validationStyle : String -> Attribute msg
+validationStyle color =
+    style
+        [ ( "color", color )
+        ]
+
+
+viewValidation : Model -> Html Msg
+viewValidation model =
+    let
+        ( color, message ) =
+            if isNaN model.amount then
+                ( "red", "Amount is an invalid number" )
+            else if model.amount == 0.0 then
+                ( "red", "Amount must be a positive number" )
+            else if model.amount /= abs model.amount then
+                ( "red", "Amount is a negative number" )
+            else
+                ( "", "" )
+    in
+        div [ validationStyle color ] [ text message ]
 
 
 resultDisplay : Model -> Html Msg
